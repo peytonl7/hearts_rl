@@ -1,6 +1,6 @@
 """
 File: classes.py
-Last update: 2/23 by Peyton
+Last update: 2/28 by Peyton
 
 Plays the game.
 

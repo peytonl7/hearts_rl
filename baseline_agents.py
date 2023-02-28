@@ -1,8 +1,11 @@
 """
-File: baseline_agent.py 
-A simple computer Hearts agent. Given a state, it takes a random legal action.
+File: baseline_agents.py 
+Simple computer Hearts agents. 
 
-Author: Michelle Fu
+BaselineAgent: Given a state, it takes a random legal action.
+GreedyBaseline: Given a state, makes a "greedy" action (see policy below).
+
+Author: Michelle Fu, Peyton Lee
 """
 
 from classes import Player, Trick, Card
@@ -46,7 +49,7 @@ class GreedyBaseline(Player):
     # Follows the following heuristic policy:
     # - Play the highest legal card you can without winning a heart, i.e. if 
     #   a heart is already played, the highest card below the current trick winner; 
-    #   else the highest card of any legal suit
+    #   else, the highest card of any legal suit
     #   - EXCEPT if it's the queen, king, or ace of spades
     #       - EXCEPT if the queen of spades has already been played this game
     # - Play the queen of spades if it's safe to get rid of it, i.e. you will not 
@@ -87,7 +90,7 @@ class GreedyBaseline(Player):
         # Case: Play the highest legal card, either because:
         # - No points yet
         # - Don't have suit, so won't win trick
-        # - Setting suit of trick
+        # - First card of trick, so setting the suit
         # - Only have cards that will become the winning card
         elif not has_points or not has_suit or not winning_card or all(card.rank > winning_card.rank for card in legal_moves):
             for card in legal_moves:
