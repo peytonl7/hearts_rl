@@ -17,11 +17,12 @@ Follows these Black Lady rules:
 """
 
 from classes import Card, Trick, ConsolePlayer, Player
+from baseline_agents import BaselineAgent, GreedyBaseline
 
 from random import shuffle
 
 NUM_PLAYERS = 4
-END_THRESHOLD = 0
+END_THRESHOLD = 100
 CONSOLE_GAME = True
 
 # Returns a full deck of cards.
@@ -33,12 +34,12 @@ def generate_deck() -> list[Card]:
     return deck
 
 # Play one trick and return the new trick starter and whether hearts are broken.
-def play_trick(players: list[Player], trick_starter: int, hearts_broken: bool):
+def play_trick(players: list[Player], tricks: list[Trick], trick_starter: int, hearts_broken: bool):
     trick = Trick(NUM_PLAYERS)
     curr_player = trick_starter
     # Each player plays a card
     for i in range(NUM_PLAYERS):
-        card = players[curr_player].take_turn(trick, hearts_broken)
+        card = players[curr_player].take_turn(trick, tricks, hearts_broken)
         trick.add_card(curr_player, card)
         curr_player = (curr_player + 1) % NUM_PLAYERS
     
@@ -46,9 +47,12 @@ def play_trick(players: list[Player], trick_starter: int, hearts_broken: bool):
     # Next trick's starter is set.
     winner = trick.determine_winner()
     players[winner].won_tricks += trick.cards.values()
-    if CONSOLE_GAME:
-        print("Player " + str(winner) + " won the trick!")
+    # if CONSOLE_GAME:
+    #     print("Player " + str(winner) + " won the trick!")
+    #     print([str(player) + ": " + card.name for player, card in trick.cards.items()])
+    #     print("------------------")
     hearts_broken = hearts_broken or any(c.suit == 'h' for c in trick.cards.values())
+    tricks.append(trick)
     return winner, hearts_broken
         
 # Given a list of players, runs a full game of hearts.
@@ -64,8 +68,9 @@ def run_game(players: list[Player]) -> dict:
     players = sorted(players, key=lambda x: x.pos)
     trick_starter = 0
     hearts_broken = False
+    tricks = []
     while players[0].hand:
-        trick_starter, hearts_broken = play_trick(players, trick_starter, hearts_broken)
+        trick_starter, hearts_broken = play_trick(players, tricks, trick_starter, hearts_broken)
         
     game_scores = [player.compute_score() for player in players]
     if any(score < 0 for score in game_scores):
@@ -87,21 +92,36 @@ def run_game(players: list[Player]) -> dict:
 def main():
     players = []
     # Instantiates players. Modify to change strategies.
-    for i in range(NUM_PLAYERS):
-        players.append(ConsolePlayer(i))
+    """
+    Peyton 2/28: With these players (one Greedy vs. three Baseline) and END_THRESHOLD = 100,
+    the GreedyBaseline basically never loses (less than 1% of rounds).
     
+    That said, it does lose individual games, usually because it's forced
+    to play AS or KS, or because a BaselineAgent randomly drops the QS on it.
+    """
+    players.append(GreedyBaseline(0))
+    players.append(BaselineAgent(1))
+    players.append(BaselineAgent(2))
+    players.append(BaselineAgent(3))
     while True:
         scores = run_game(players)
         if CONSOLE_GAME:
             print("Results: ")
             for player, score in scores.items():
                 print("Player " + str(player) + ": " + str(score))
+        for player in players:
+            player.won_tricks.clear()
         if any(player.total_score >= END_THRESHOLD for player in players):
             break
         
     final_scores = [player.total_score for player in players]
     loser = final_scores.index(max(final_scores))
-    print("Player " + str(loser) + " lost!")
+    if CONSOLE_GAME:
+        print("Final results: ")
+        for p, score in {player.pos:player.total_score for player in players}.items():
+            print("Player " + str(p) + ": " + str(score))
+        print("Player " + str(loser) + " lost!")
 
 if __name__ == "__main__":
     main()
+        

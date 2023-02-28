@@ -56,7 +56,7 @@ class Player():
     # 
     # Should also verify that the card is a legal play. For the agent, this probably
     # means limiting the action space based on the state.
-    def take_turn(self, trick: Trick, hearts_broken: bool) -> Card:
+    def take_turn(self, trick: Trick, tricks: list[Trick], hearts_broken: bool) -> Card:
         # TODO: Defined by user input, heuristic policy, or reinforcement learning agent
         pass
     
@@ -82,7 +82,7 @@ class ConsolePlayer(Player):
     def __init__(self, pos: int):
         super().__init__(pos)
         
-    def take_turn(self, trick: Trick, hearts_broken: bool) -> Card:
+    def take_turn(self, trick: Trick, tricks: list[Trick], hearts_broken: bool) -> Card:
         for player, card in trick.cards.items():
             print("Player " + str(player) + " played " + card.name)
         card_names = sorted([card.name for card in self.hand], key=lambda x: x[-1])
