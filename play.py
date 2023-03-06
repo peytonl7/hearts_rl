@@ -16,6 +16,7 @@ Follows these Black Lady rules:
     - A full game ends when one person reaches END_THRESHOLD.
 """
 
+import sys
 from classes import Card, Trick, ConsolePlayer, Player
 from baseline_agents import BaselineAgent, GreedyBaseline
 
@@ -23,7 +24,6 @@ from random import shuffle
 
 NUM_PLAYERS = 4
 END_THRESHOLD = 100
-CONSOLE_GAME = True
 
 # Returns a full deck of cards.
 def generate_deck() -> list[Card]:
@@ -89,39 +89,45 @@ def run_game(players: list[Player]) -> dict:
 
 # Runs the game until one player hits END_THRESHOLD points, then declares
 # that player the loser.
-def main():
-    players = []
-    # Instantiates players. Modify to change strategies.
-    """
-    Peyton 2/28: With these players (one Greedy vs. three Baseline) and END_THRESHOLD = 100,
-    the GreedyBaseline basically never loses (less than 1% of rounds).
-    
-    That said, it does lose individual games, usually because it's forced
-    to play AS or KS, or because a BaselineAgent randomly drops the QS on it.
-    """
-    players.append(GreedyBaseline(0))
-    players.append(BaselineAgent(1))
-    players.append(BaselineAgent(2))
-    players.append(BaselineAgent(3))
+def play(players: list[Player], end_threshold: int, console_game: bool):
     while True:
         scores = run_game(players)
-        if CONSOLE_GAME:
+        if console_game:
             print("Results: ")
             for player, score in scores.items():
                 print("Player " + str(player) + ": " + str(score))
         for player in players:
             player.won_tricks.clear()
-        if any(player.total_score >= END_THRESHOLD for player in players):
+        if any(player.total_score >= end_threshold for player in players):
             break
         
+    labeled_final_scores = {player.pos:player.total_score for player in players}
     final_scores = [player.total_score for player in players]
     loser = final_scores.index(max(final_scores))
-    if CONSOLE_GAME:
+    if console_game:
         print("Final results: ")
-        for p, score in {player.pos:player.total_score for player in players}.items():
+        for p, score in labeled_final_scores.items():
             print("Player " + str(p) + ": " + str(score))
         print("Player " + str(loser) + " lost!")
+    for player in players:
+        player.total_score = 0
+    return labeled_final_scores
 
 if __name__ == "__main__":
-    main()
+    assert(len(sys.argv) == 2)
+    cpu_type = sys.argv[1]
+    if cpu_type not in ['baseline', 'greedy']:
+        print("Invalid player type. Should be one of: ", ['baseline', 'greedy'])
+    else:
+        players = []
+        players.append(ConsolePlayer(0))
+        if cpu_type == 'baseline':
+            players.append(BaselineAgent(1))
+            players.append(BaselineAgent(2))
+            players.append(BaselineAgent(3))
+        elif cpu_type == 'greedy':
+            players.append(GreedyBaseline(1))
+            players.append(GreedyBaseline(2))
+            players.append(GreedyBaseline(3))
+        play(players, END_THRESHOLD, True)
         

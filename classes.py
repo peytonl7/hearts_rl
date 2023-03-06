@@ -60,6 +60,22 @@ class Player():
         # TODO: Defined by user input, heuristic policy, or reinforcement learning agent
         pass
     
+    # Gets legal moves given current state of trick/game
+    def get_legal_moves(self, trick: Trick, hearts_broken: bool):
+        legal_moves = []
+        has_suit = any(c.suit == trick.suit for c in self.hand)
+        if not has_suit:
+            for card in self.hand: 
+                if not trick.suit and card.suit == 'h' and not hearts_broken and any(c.suit != 'h' for c in self.hand):
+                    continue
+                else:
+                    legal_moves.append(card)
+        else:
+            for card in self.hand:
+                if card.suit == trick.suit:
+                    legal_moves.append(card)
+        return legal_moves
+    
     # After game is done, computes score based on won tricks. 
     # Returns the score for that game.
     def compute_score(self) -> int:

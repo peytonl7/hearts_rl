@@ -19,18 +19,7 @@ class BaselineAgent(Player):
     
     # this baseline agent just plays a random legal move
     def take_turn(self, trick: Trick, tricks: list[Trick], hearts_broken: bool) -> Card:
-        legal_moves = []
-        has_suit = any(c.suit == trick.suit for c in self.hand)
-        if not has_suit:
-            for card in self.hand: 
-                if not trick.suit and card.suit == 'h' and not hearts_broken and any(c.suit != 'h' for c in self.hand):
-                    continue
-                else:
-                    legal_moves.append(card)
-        else:
-            for card in self.hand:
-                if card.suit == trick.suit:
-                    legal_moves.append(card)
+        legal_moves = self.get_legal_moves(trick, hearts_broken)
         move = random.choice(legal_moves)
         
         if DEBUGGING:
@@ -55,18 +44,7 @@ class GreedyBaseline(Player):
     # - Play the queen of spades if it's safe to get rid of it, i.e. you will not 
     #   collect it based on the current state of the trick
     def take_turn(self, trick: Trick, tricks: list[Trick], hearts_broken: bool) -> Card:
-        legal_moves = []
-        has_suit = any(c.suit == trick.suit for c in self.hand)
-        if not has_suit:
-            for card in self.hand: 
-                if not trick.suit and card.suit == 'h' and not hearts_broken and any(c.suit != 'h' for c in self.hand):
-                    continue
-                else:
-                    legal_moves.append(card)
-        else:
-            for card in self.hand:
-                if card.suit == trick.suit:
-                    legal_moves.append(card)
+        legal_moves = self.get_legal_moves(trick, hearts_broken)
         
         # Checks state for if the current trick has points, what the current winning
         # card of the trick is, if the queen of spades has been played, and if it's
@@ -92,7 +70,7 @@ class GreedyBaseline(Player):
         # - Don't have suit, so won't win trick
         # - First card of trick, so setting the suit
         # - Only have cards that will become the winning card
-        elif not has_points or not has_suit or not winning_card or all(card.rank > winning_card.rank for card in legal_moves):
+        elif not has_points or all(c.suit != trick.suit for c in self.hand) or not winning_card or all(card.rank > winning_card.rank for card in legal_moves):
             for card in legal_moves:
                 if not move or card.rank > move.rank:
                     if black_lady_played or card.name not in ["QS", "KS", "AS"] or all(c.name in ["QS", "KS", "AS"] for c in legal_moves):
