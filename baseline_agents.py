@@ -53,7 +53,7 @@ class GreedyBaseline(Player):
         winning_card = None
         if trick.suit:
             for card in trick.cards.values():
-                if not winning_card or (card.suit == trick.suit and card.rank > winning_card.rank):
+                if card.suit == trick.suit and (not winning_card or card.rank > winning_card.rank):
                     winning_card = card 
         black_lady_played = any(any(card.name == 'QS' for card in t.cards.values()) for t in tricks)
         safe_to_play_QS = trick.suit and trick.suit != 's' or any(card.name in ['AS', 'KS'] for card in trick.cards.values())
