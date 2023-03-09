@@ -9,10 +9,11 @@ Contains relevant classes for modeling the game.
 
 # Model of a card
 class Card():
-    def __init__(self, rank: int, suit: str):
+    def __init__(self, rank: int, suit: str, id: int):
         self.rank = rank    # int
         self.suit = suit    # Should be enforced as one of [s, d, h, c]
         self.name = int_rank_to_name(rank) + suit.upper()   # For display
+        self.id = id
         
 # Trick used during gameplay. 13 instantiations in a normal round
 class Trick():
@@ -46,6 +47,7 @@ class Player():
         self.hand = []
         self.won_tricks = []
         self.total_score = 0
+        self.prev_state = None
     
     # Self-explanatory
     def add_card_to_hand(self, card: Card):
@@ -57,11 +59,17 @@ class Player():
     # Should also verify that the card is a legal play. For the agent, this probably
     # means limiting the action space based on the state.
     def take_turn(self, trick: Trick, tricks: list[Trick], hearts_broken: bool) -> Card:
-        # TODO: Defined by user input, heuristic policy, or reinforcement learning agent
+        # Defined by user input, heuristic policy, or reinforcement learning agent
+        pass
+    
+    # Take state information and return an encoded state integer.
+    # Different depending on state model
+    def get_state_int(self, trick: Trick, tricks: list[Trick], legal_moves: list[Card]):
+        # Implemented by RL versions of Player
         pass
     
     # Gets legal moves given current state of trick/game
-    def get_legal_moves(self, trick: Trick, hearts_broken: bool):
+    def get_legal_moves(self, trick: Trick, hearts_broken: bool) -> list[Card]:
         legal_moves = []
         has_suit = any(c.suit == trick.suit for c in self.hand)
         if not has_suit:

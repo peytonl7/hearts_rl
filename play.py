@@ -28,13 +28,15 @@ END_THRESHOLD = 100
 # Returns a full deck of cards.
 def generate_deck() -> list[Card]:
     deck = []
+    counter = 0
     for r in range(2, 15):
         for s in ['s', 'd', 'h', 'c']:
-            deck.append(Card(r, s))
+            deck.append(Card(r, s, counter))
+            counter += 1
     return deck
 
 # Play one trick and return the new trick starter and whether hearts are broken.
-def play_trick(players: list[Player], tricks: list[Trick], trick_starter: int, hearts_broken: bool):
+def play_trick(players: list[Player], tricks: list[Trick], trick_starter: int, hearts_broken: bool, console_game: bool):
     trick = Trick(NUM_PLAYERS)
     curr_player = trick_starter
     # Each player plays a card
@@ -47,17 +49,17 @@ def play_trick(players: list[Player], tricks: list[Trick], trick_starter: int, h
     # Next trick's starter is set.
     winner = trick.determine_winner()
     players[winner].won_tricks += trick.cards.values()
-    # if CONSOLE_GAME:
-    #     print("Player " + str(winner) + " won the trick!")
-    #     print([str(player) + ": " + card.name for player, card in trick.cards.items()])
-    #     print("------------------")
+    if console_game:
+        print("Player " + str(winner) + " won the trick!")
+        print([str(player) + ": " + card.name for player, card in trick.cards.items()])
+        print("------------------")
     hearts_broken = hearts_broken or any(c.suit == 'h' for c in trick.cards.values())
     tricks.append(trick)
     return winner, hearts_broken
         
 # Given a list of players, runs a full game of hearts.
 # Returns a dictionary of players (by pos) and their scores.
-def run_game(players: list[Player]) -> dict:
+def run_game(players: list[Player], console_game: bool) -> dict:
     deck = generate_deck()  # For toy example (two cards per hand), modify this line.
     shuffle(deck)
     curr_player = 0
@@ -70,7 +72,7 @@ def run_game(players: list[Player]) -> dict:
     hearts_broken = False
     tricks = []
     while players[0].hand:
-        trick_starter, hearts_broken = play_trick(players, tricks, trick_starter, hearts_broken)
+        trick_starter, hearts_broken = play_trick(players, tricks, trick_starter, hearts_broken, console_game)
         
     game_scores = [player.compute_score() for player in players]
     if any(score < 0 for score in game_scores):
@@ -91,13 +93,14 @@ def run_game(players: list[Player]) -> dict:
 # that player the loser.
 def play(players: list[Player], end_threshold: int, console_game: bool):
     while True:
-        scores = run_game(players)
+        scores = run_game(players, console_game)
         if console_game:
             print("Results: ")
             for player, score in scores.items():
                 print("Player " + str(player) + ": " + str(score))
         for player in players:
             player.won_tricks.clear()
+            player.prev_state = None
         if any(player.total_score >= end_threshold for player in players):
             break
         
