@@ -5,6 +5,8 @@ Last update: 2/28 by Peyton
 Contains relevant classes for modeling the game.
 """
 
+import csv
+
 """-----------MAIN CLASSES-----------"""
 
 # Model of a card
@@ -48,6 +50,8 @@ class Player():
         self.won_tricks = []
         self.total_score = 0
         self.prev_state = None
+        self.prev_action = None
+        self.prev_score = None
     
     # Self-explanatory
     def add_card_to_hand(self, card: Card):
@@ -63,10 +67,31 @@ class Player():
         pass
     
     # Take state information and return an encoded state integer.
-    # Different depending on state model
-    def get_state_int(self, trick: Trick, tricks: list[Trick], legal_moves: list[Card]):
-        # Implemented by RL versions of Player
-        pass
+    # s = num_spades_played * 13^0 + num_diamonds_played * 13^1 + num_hearts_played * 13^2
+    #     num_clubs_played * 13^3 + hand_var * 13^4
+    # hand_var = [0: first to play in trick, 
+    #             1: doesn't have trick suit,
+    #             2: has suit but all cards are lower than the current winning card, 
+    #             3: has suit and a potential winning card]
+    def get_state(self, trick: Trick, tricks: list[Trick], legal_moves: list[Card]):
+        if not trick.suit:
+            hand_var = 0
+        elif any(c.suit != trick.suit for c in legal_moves):
+            hand_var = 1
+        else:
+            winning_card = None
+            for card in trick.cards.values():
+                if card.suit == trick.suit and (not winning_card or card.rank > winning_card.rank):
+                    winning_card = card 
+            if all(c.rank < winning_card.rank for c in legal_moves):
+                hand_var = 2
+            else:
+                hand_var = 3
+        suit_counts = [0, 0, 0, 0]
+        for t in [trick] + tricks:
+            for card in t.cards.values():
+                suit_counts[card.id // 13] += 1
+        return suit_counts[0] + suit_counts[1] * 14 + suit_counts[2] * 14 ** 2 + suit_counts[3] * 14 ** 3 + hand_var * 14 ** 4
     
     # Gets legal moves given current state of trick/game
     def get_legal_moves(self, trick: Trick, hearts_broken: bool) -> list[Card]:
@@ -137,6 +162,16 @@ class ConsolePlayer(Player):
             if c.suit == suit and c.rank == rank:
                 self.hand.remove(c)
                 return c
+            
+            
+class StateRecord():
+    def __init__(self):
+        self.record = []
+        
+    def write_to_csv(self, filename: str):
+        with open(filename, 'w') as f:
+            w = csv.writer(f)
+            w.writerows(self.record)
     
 """-----------HELPERS-----------"""
     

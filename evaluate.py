@@ -14,7 +14,7 @@ from tqdm import tqdm
 def evaluate(players: list[Player], end_threshold: int, num_evals: int):
     wins, losses = [0, 0, 0, 0], [0, 0, 0, 0]
     for i in tqdm(range(num_evals)):
-        final_scores = play(players, end_threshold, False)
+        final_scores = play(players, end_threshold, False, None)
         for player, score in final_scores.items():
             if score == max(final_scores.values()):
                 losses[player] += 1
@@ -43,7 +43,7 @@ def main():
     print("One round loss percentages: ", one_round_losses)
     full_game_wins, full_game_losses = evaluate(players, end_threshold=100, num_evals=10000)
     print("Full game win percentages: ", full_game_wins)
-    print("Full game win percentages: ", full_game_losses)
+    print("Full game loss percentages: ", full_game_losses)
     
 if __name__ == "__main__":
     main()

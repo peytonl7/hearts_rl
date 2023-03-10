@@ -17,7 +17,7 @@ Follows these Black Lady rules:
 """
 
 import sys
-from classes import Card, Trick, ConsolePlayer, Player
+from classes import Card, Trick, ConsolePlayer, Player, StateRecord
 from baseline_agents import BaselineAgent, GreedyBaseline
 
 from random import shuffle
@@ -25,24 +25,38 @@ from random import shuffle
 NUM_PLAYERS = 4
 END_THRESHOLD = 100
 
+# 13 * (14 ** 0 + 14 ** 1 + 14 ** 2 + 14 ** 3) 
+FINAL_STATE = 38415
+
 # Returns a full deck of cards.
 def generate_deck() -> list[Card]:
     deck = []
     counter = 0
-    for r in range(2, 15):
-        for s in ['s', 'd', 'h', 'c']:
+    for s in ['s', 'd', 'h', 'c']:
+        for r in range(2, 15):
             deck.append(Card(r, s, counter))
             counter += 1
     return deck
 
 # Play one trick and return the new trick starter and whether hearts are broken.
-def play_trick(players: list[Player], tricks: list[Trick], trick_starter: int, hearts_broken: bool, console_game: bool):
+def play_trick(players: list[Player], tricks: list[Trick], trick_starter: int, hearts_broken: bool, console_game: bool,
+               state_record: StateRecord):
     trick = Trick(NUM_PLAYERS)
     curr_player = trick_starter
     # Each player plays a card
     for i in range(NUM_PLAYERS):
-        card = players[curr_player].take_turn(trick, tricks, hearts_broken)
+        player = players[curr_player]
+        state = player.get_state(trick, tricks, player.get_legal_moves(trick, hearts_broken))
+        curr_score = player.compute_score()
+        if state_record is not None and player.prev_state is not None:
+            reward = player.prev_score - curr_score
+            state_record.record.append([player.pos, player.prev_state, player.prev_action, reward, state])
+        player.prev_state = state
+        player.prev_score = curr_score
+        
+        card = player.take_turn(trick, tricks, hearts_broken)
         trick.add_card(curr_player, card)
+        player.prev_action = card.id
         curr_player = (curr_player + 1) % NUM_PLAYERS
     
     # Winner of trick is determined and the cards go to the winner.
@@ -59,7 +73,7 @@ def play_trick(players: list[Player], tricks: list[Trick], trick_starter: int, h
         
 # Given a list of players, runs a full game of hearts.
 # Returns a dictionary of players (by pos) and their scores.
-def run_game(players: list[Player], console_game: bool) -> dict:
+def run_game(players: list[Player], console_game: bool, state_record: StateRecord) -> dict:
     deck = generate_deck()  # For toy example (two cards per hand), modify this line.
     shuffle(deck)
     curr_player = 0
@@ -72,7 +86,7 @@ def run_game(players: list[Player], console_game: bool) -> dict:
     hearts_broken = False
     tricks = []
     while players[0].hand:
-        trick_starter, hearts_broken = play_trick(players, tricks, trick_starter, hearts_broken, console_game)
+        trick_starter, hearts_broken = play_trick(players, tricks, trick_starter, hearts_broken, console_game, state_record)
         
     game_scores = [player.compute_score() for player in players]
     if any(score < 0 for score in game_scores):
@@ -91,16 +105,24 @@ def run_game(players: list[Player], console_game: bool) -> dict:
 
 # Runs the game until one player hits END_THRESHOLD points, then declares
 # that player the loser.
-def play(players: list[Player], end_threshold: int, console_game: bool):
+def play(players: list[Player], end_threshold: int, console_game: bool, state_record: StateRecord):
     while True:
-        scores = run_game(players, console_game)
+        scores = run_game(players, console_game, state_record)
         if console_game:
             print("Results: ")
             for player, score in scores.items():
                 print("Player " + str(player) + ": " + str(score))
         for player in players:
+            state = FINAL_STATE
+            curr_score = scores[player.pos]
+            if state_record is not None:
+                reward = player.prev_score - curr_score
+                state_record.record.append([player.pos, player.prev_state, player.prev_action, reward, state])
+            
             player.won_tricks.clear()
             player.prev_state = None
+            player.prev_action = None
+            player.prev_score = 0
         if any(player.total_score >= end_threshold for player in players):
             break
         
@@ -132,5 +154,5 @@ if __name__ == "__main__":
             players.append(GreedyBaseline(1))
             players.append(GreedyBaseline(2))
             players.append(GreedyBaseline(3))
-        play(players, END_THRESHOLD, True)
+        play(players, END_THRESHOLD, True, None)
         
