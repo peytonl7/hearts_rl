@@ -1,17 +1,11 @@
 """
 File: deep_q.py
-Last update: 03/06 by Michelle
+Last update: 03/09 by Michelle
 Attributions: I followed the PyTorch deep-Q tutorial (https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html),
 but typed all code myself and modified it for the Hearts environment
 
 Contains code for the Deep Q-Learning Hearts agent
 """
-# stuff to test:
-# Does that model perform better with rewards at every state, or just one reward at the end?
-# How many layers? What is the epsilon?
-
-# things to think about:
-# how do we make the agent interact with the environment?
 
 import math
 import random
@@ -22,7 +16,13 @@ import torch.nn.functional as F
 from collections import namedtuple, deque
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+from classes import Card, Trick, Player
+from utils import card_to_index
+from simulate_transition import get_starting_state, simulate_transition
+
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
+NUM_PLAYERS = 4
+AGENT_INDEX = 0
 
 # stores transitions for experience replay
 class ReplayMemory(object):
@@ -76,6 +76,7 @@ class Trainer():
         self.memory = ReplayMemory(100) # this was suggested in a paper
         self.steps_done = 0
 
+    # TODO: write action_from_vec, find way to get card from name
     def get_action(self, state, legal_actions):
         eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * \
             math.exp(-1 * self.steps_done / self.eps_decay)
@@ -84,12 +85,14 @@ class Trainer():
         sample = random.random()
         if sample > eps_threshold:
             with torch.no_grad():
-                return self.policy_net(state).max(1)[1].view(1, 1)
+                action_tsr = self.policy_net(state).max(1)[1].view(1, 1)
+                action = action_from_vec(action_tsr) # WRITE THIS
+                return action, action_tsr
         else:
             action = random.choice(legal_actions)
             action_tsr = [0] * 52
-            action_tsr[card_to_index(action)] = 1
-            return torch.tensor(action_tsr, device=device, dtype = torch.long)
+            action_tsr[card_to_index(action.name)] = 1
+            return action, torch.tensor(action_tsr, device=device, dtype = torch.long)
     
     def optimize_model(self):
         if len(self.memory) < self.batch_size:
@@ -129,17 +132,22 @@ class Trainer():
             num_epochs = 50 
         
         for i in range(num_epochs):
-            state, legal_actions = None # generate a starting state and encode its info
+            curr_trick = Trick(NUM_PLAYERS)
+            tricks = []
+            hearts_broken = False
+            state, players = get_starting_state()
+            legal_actions = players[AGENT_INDEX].get_legal_moves(curr_trick, hearts_broken)
             state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
             while True: # play a whole game
                 if state is None: break
-                action = self.get_action(state, legal_actions)
-                next_state, reward, terminated = None # play the trick to the end and get the next state
+                action, action_tsr = self.get_action(state, legal_actions)
+                curr_trick, tricks, players, hearts_broken, next_state, reward = \
+                    simulate_transition(curr_trick, tricks, players, hearts_broken, action) # play the trick to the end and get the next state
 
                 if next_state != None:
                     next_state = torch.tensor(next_state, dtype=torch.float32, device=device).unsqueeze(0)
                 
-                self.memory.push(state, action, next_state, reward)
+                self.memory.push(state, action_tsr, next_state, reward)
                 state = next_state
                 self.optimize_model()
 
@@ -150,6 +158,4 @@ class Trainer():
                     target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (1 - self.tau)
                 self.target_net.load_state_dict(target_net_state_dict)
 
-def card_to_index(card):
-    #TODO
-    pass
+# TODO: write code for the agent to play a game (probably need to load trained weights somewhere)

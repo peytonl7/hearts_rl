@@ -18,7 +18,7 @@ class BaselineAgent(Player):
         super().__init__(pos)
     
     # this baseline agent just plays a random legal move
-    def take_turn(self, trick: Trick, tricks: list[Trick], hearts_broken: bool) -> Card:
+    def take_turn(self, trick: Trick, tricks: 'list[Trick]', hearts_broken: bool) -> Card:
         legal_moves = self.get_legal_moves(trick, hearts_broken)
         move = random.choice(legal_moves)
         
@@ -43,7 +43,7 @@ class GreedyBaseline(Player):
     #       - EXCEPT if the queen of spades has already been played this game
     # - Play the queen of spades if it's safe to get rid of it, i.e. you will not 
     #   collect it based on the current state of the trick
-    def take_turn(self, trick: Trick, tricks: list[Trick], hearts_broken: bool) -> Card:
+    def take_turn(self, trick: Trick, tricks: 'list[Trick]', hearts_broken: bool) -> Card:
         legal_moves = self.get_legal_moves(trick, hearts_broken)
         
         # Checks state for if the current trick has points, what the current winning

@@ -52,6 +52,10 @@ class Player():
         self.prev_state = None
         self.prev_action = None
         self.prev_score = None
+
+        # for deep q
+        self.prev_actions = []
+        self.won_hearts = False
     
     # Self-explanatory
     def add_card_to_hand(self, card: Card):
@@ -62,7 +66,7 @@ class Player():
     # 
     # Should also verify that the card is a legal play. For the agent, this probably
     # means limiting the action space based on the state.
-    def take_turn(self, trick: Trick, tricks: list[Trick], hearts_broken: bool) -> Card:
+    def take_turn(self, trick: Trick, tricks: 'list[Trick]', hearts_broken: bool) -> Card:
         # Defined by user input, heuristic policy, or reinforcement learning agent
         pass
     
@@ -73,7 +77,7 @@ class Player():
     #             1: doesn't have trick suit,
     #             2: has suit but all cards are lower than the current winning card, 
     #             3: has suit and a potential winning card]
-    def get_state(self, trick: Trick, tricks: list[Trick], legal_moves: list[Card]):
+    def get_state(self, trick: Trick, tricks: 'list[Trick]', legal_moves: 'list[Card]'):
         if not trick.suit:
             hand_var = 0
         elif any(c.suit != trick.suit for c in legal_moves):
@@ -94,7 +98,7 @@ class Player():
         return suit_counts[0] + suit_counts[1] * 14 + suit_counts[2] * 14 ** 2 + suit_counts[3] * 14 ** 3 + hand_var * 14 ** 4
     
     # Gets legal moves given current state of trick/game
-    def get_legal_moves(self, trick: Trick, hearts_broken: bool) -> list[Card]:
+    def get_legal_moves(self, trick: Trick, hearts_broken: bool) -> 'list[Card]':
         legal_moves = []
         has_suit = any(c.suit == trick.suit for c in self.hand)
         if not has_suit:
@@ -131,7 +135,7 @@ class ConsolePlayer(Player):
     def __init__(self, pos: int):
         super().__init__(pos)
         
-    def take_turn(self, trick: Trick, tricks: list[Trick], hearts_broken: bool) -> Card:
+    def take_turn(self, trick: Trick, tricks: 'list[Trick]', hearts_broken: bool) -> Card:
         for player, card in trick.cards.items():
             print("Player " + str(player) + " played " + card.name)
         card_names = sorted([card.name for card in self.hand], key=lambda x: x[-1])
