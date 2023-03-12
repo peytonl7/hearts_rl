@@ -29,7 +29,7 @@ END_THRESHOLD = 100
 FINAL_STATE = 38415
 
 # Returns a full deck of cards.
-def generate_deck() -> list[Card]:
+def generate_deck() -> 'list[Card]':
     deck = []
     counter = 0
     for s in ['s', 'd', 'h', 'c']:
@@ -39,7 +39,7 @@ def generate_deck() -> list[Card]:
     return deck
 
 # Play one trick and return the new trick starter and whether hearts are broken.
-def play_trick(players: list[Player], tricks: list[Trick], trick_starter: int, hearts_broken: bool, console_game: bool,
+def play_trick(players: 'list[Player]', tricks: 'list[Trick]', trick_starter: int, hearts_broken: bool, console_game: bool,
                state_record: StateRecord):
     trick = Trick(NUM_PLAYERS)
     curr_player = trick_starter
@@ -73,7 +73,7 @@ def play_trick(players: list[Player], tricks: list[Trick], trick_starter: int, h
         
 # Given a list of players, runs a full game of hearts.
 # Returns a dictionary of players (by pos) and their scores.
-def run_game(players: list[Player], console_game: bool, state_record: StateRecord) -> dict:
+def run_game(players: 'list[Player]', console_game: bool, state_record: StateRecord) -> dict:
     deck = generate_deck()  # For toy example (two cards per hand), modify this line.
     shuffle(deck)
     curr_player = 0
@@ -105,7 +105,7 @@ def run_game(players: list[Player], console_game: bool, state_record: StateRecor
 
 # Runs the game until one player hits END_THRESHOLD points, then declares
 # that player the loser.
-def play(players: list[Player], end_threshold: int, console_game: bool, state_record: StateRecord):
+def play(players: 'list[Player]', end_threshold: int, console_game: bool, state_record: StateRecord):
     while True:
         scores = run_game(players, console_game, state_record)
         if console_game:
