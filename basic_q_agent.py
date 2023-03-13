@@ -73,7 +73,7 @@ class BasicQAgent(Player):
         self.q_learner = QLearner(state_space, action_space, discount=1, alpha=0.01)
     
     # Employs batch Q-learning with actions constrained by rules
-    def take_turn(self, trick: Trick, tricks: 'list[Trick]', hearts_broken: bool) -> Card:
+    def take_turn(self, trick: Trick, tricks: 'list[Trick]', players: 'list[Player]', hearts_broken: bool) -> Card:
         legal_moves = self.get_legal_moves(trick, hearts_broken)
         state = self.get_state(trick, tricks, legal_moves)
         optimal_card, optimal_Q = None, -inf

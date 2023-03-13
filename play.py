@@ -54,7 +54,7 @@ def play_trick(players: 'list[Player]', tricks: 'list[Trick]', trick_starter: in
         player.prev_state = state
         player.prev_score = curr_score
         
-        card = player.take_turn(trick, tricks, hearts_broken)
+        card = player.take_turn(trick, tricks, players, hearts_broken)
         trick.add_card(curr_player, card)
         player.prev_action = card.id
         curr_player = (curr_player + 1) % NUM_PLAYERS

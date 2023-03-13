@@ -1,6 +1,6 @@
 """
 File: classes.py
-Last update: 2/28 by Peyton
+Last update: 3/11 by Michelle
 
 Contains relevant classes for modeling the game.
 """
@@ -20,7 +20,7 @@ class Card():
 # Trick used during gameplay. 13 instantiations in a normal round
 class Trick():
     def __init__(self, num_players: int):
-        self.cards = {}                 # list[Card]
+        self.cards = {}                 # dict(player_pos:Card)
         self.suit = None                # suit of the trick, i.e. first card played
         self.last_added = None          # int pos of last player to play a card in the trick
         self.num_players = num_players  # number of players
@@ -51,7 +51,7 @@ class Player():
         self.total_score = 0
         self.prev_state = None
         self.prev_action = None
-        self.prev_score = None
+        self.prev_score = 0
 
         # for deep q
         self.prev_actions = []
@@ -66,7 +66,7 @@ class Player():
     # 
     # Should also verify that the card is a legal play. For the agent, this probably
     # means limiting the action space based on the state.
-    def take_turn(self, trick: Trick, tricks: 'list[Trick]', hearts_broken: bool) -> Card:
+    def take_turn(self, trick: Trick, tricks: 'list[Trick]', players: 'list[Player]', hearts_broken: bool) -> Card:
         # Defined by user input, heuristic policy, or reinforcement learning agent
         pass
     
@@ -135,7 +135,7 @@ class ConsolePlayer(Player):
     def __init__(self, pos: int):
         super().__init__(pos)
         
-    def take_turn(self, trick: Trick, tricks: 'list[Trick]', hearts_broken: bool) -> Card:
+    def take_turn(self, trick: Trick, tricks: 'list[Trick]', players: 'list[Player]', hearts_broken: bool) -> Card:
         for player, card in trick.cards.items():
             print("Player " + str(player) + " played " + card.name)
         card_names = sorted([card.name for card in self.hand], key=lambda x: x[-1])

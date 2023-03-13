@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 # Evaluates the player configuration with the given end-game threshold, testing 
 # for num_eval iterations.
-def evaluate(players: list[Player], end_threshold: int, num_evals: int):
+def evaluate(players: 'list[Player]', end_threshold: int, num_evals: int):
     wins, losses = [0, 0, 0, 0], [0, 0, 0, 0]
     for i in tqdm(range(num_evals)):
         final_scores = play(players, end_threshold, False, None)
