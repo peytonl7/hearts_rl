@@ -8,6 +8,7 @@ Contains code for the Deep Q-Learning Hearts agent
 """
 
 import math
+import numpy as np
 from tqdm import tqdm
 import random
 import torch
@@ -24,7 +25,7 @@ from simulate_transition import get_starting_state, simulate_transition
 from baseline_agents import BaselineAgent, GreedyBaseline
 from evaluate import evaluate
 
-Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'legal_mask'))
 NUM_PLAYERS = 4
 AGENT_INDEX = 0
 
@@ -47,10 +48,10 @@ class ReplayMemory(object):
 class DQN(nn.Module):
     def __init__(self, n_observations, n_actions) -> None:
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 1024)
-        self.layer2 = nn.Linear(1024, 1024)
-        self.layer3 = nn.Linear(1024, 1024)
-        self.layer4 = nn.Linear(1024, n_actions)
+        self.layer1 = nn.Linear(n_observations, 256)
+        self.layer2 = nn.Linear(256, 256)
+        self.layer3 = nn.Linear(256, 128)
+        self.layer4 = nn.Linear(128, n_actions)
     
     # called on one element (to determine next action) or batch
     def forward(self, x):
@@ -61,14 +62,15 @@ class DQN(nn.Module):
     
 class Trainer():
     def __init__(self) -> None:
-        self.batch_size = 800
+        self.batch_size = 512
         self.gamma = 1
         self.eps_start = 0.9
         self.eps_end = 0.05
         self.eps_decay = 1000
         self.tau = 0.005 # update rate of target network
-        self.lr = 0.0004 
-        self.loss_list = []
+        self.lr = 0.0001
+        self.reward_list = []
+        self.mean_reward = 0
 
         n_actions = 52 # one for each card
         # 52 to encode cards in play, 52 to encode cards in hand, 52 to encode what cards have been previously played
@@ -92,24 +94,22 @@ class Trainer():
         if sample > eps_threshold:
             with torch.no_grad():
                 actions = self.policy_net(state).squeeze()
-                # print(actions)
-                # print([card.name for card in legal_actions])
                 legal_indices = torch.LongTensor([CARD_TO_IND[card.name] for card in legal_actions]).to(device)
                 legal_moves_vals = torch.index_select(actions, 0, legal_indices)
-                # print(legal_moves_vals)
                 action_ind = legal_indices[torch.argmax(legal_moves_vals).item()]
-                # print(action_ind)
                 suit, rank, id = action_from_tsr(action_ind) 
                 action = Card(rank, suit, id)
-                # print(action.name)
                 action_tsr = torch.tensor([action_ind], device=device, dtype = torch.long)
-                # print(action_tsr)
                 return action, action_tsr
         else:
             action = random.choice(legal_actions)
-            # print(action.name)
             action_tsr = [CARD_TO_IND[action.name]]
             return action, torch.tensor(action_tsr, device=device, dtype = torch.long)
+    
+    def get_max(self, indices, mask):
+        action_values = self.target_net(indices)
+        action_values = action_values.masked_fill(mask, -10000)
+        return action_values.max(1)[0]
     
     def optimize_model(self):
         if len(self.memory) < self.batch_size:
@@ -122,18 +122,25 @@ class Trainer():
         state_batch = torch.cat(batch.state)
         action_batch = torch.stack(batch.action)
         reward_batch = torch.stack(batch.reward)
-
+        mask_batch = torch.stack(batch.legal_mask)
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+        # print(state_action_values)
+        # print("state action:", state_action_values.size())
         next_state_values = torch.zeros(self.batch_size, device=device)
+        # this is an issue
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+            # next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+            next_state_values[non_final_mask] = self.get_max(non_final_next_states, mask_batch[non_final_mask])
         # compute expected Q values
-        expected_state_action_values = (next_state_values * self.gamma) + reward_batch
-
+        # print((next_state_values * self.gamma).size())
+        # print(reward_batch.size())
+        expected_state_action_values = torch.add((next_state_values * self.gamma).unsqueeze(1),reward_batch)
+        # print("expected:", expected_state_action_values.size())
+        # print(expected_state_action_values)
         # compute Huber loss
+        # raise("stop")
         criterion = nn.SmoothL1Loss()
-        loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
-        self.loss_list.append(loss)
+        loss = criterion(state_action_values, expected_state_action_values)
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -143,13 +150,14 @@ class Trainer():
         self.optimizer.step()
     
     def train(self, policy=None, target=None):
-        num_epochs = 600
+        num_epochs = 50
 
         if policy:
             self.policy_net = torch.load(policy)
         if target:
             self.target_net = torch.load(target)
-        
+
+        this_reward = []
         for i in tqdm(range(num_epochs)):
             curr_trick = Trick(NUM_PLAYERS)
             tricks = []
@@ -166,8 +174,13 @@ class Trainer():
 
                 if next_state != None:
                     next_state = torch.tensor(next_state, dtype=torch.float32, device=device).unsqueeze(0)
+                this_reward.append(reward)
                 reward_tsr = torch.tensor([reward], dtype=torch.float32, device=device)
-                self.memory.push(state, action_tsr, next_state, reward_tsr)
+                mask = torch.zeros(52).to(device)
+                legal_indices = torch.LongTensor([CARD_TO_IND[card.name] for card in legal_actions]).to(device)
+                # print(legal_indices)
+                mask = ~(mask.scatter(0, legal_indices, 1.).bool())
+                self.memory.push(state, action_tsr, next_state, reward_tsr, mask)
                 state = next_state
                 self.optimize_model()
 
@@ -177,6 +190,10 @@ class Trainer():
                 for key in policy_net_state_dict:
                     target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (1 - self.tau)
                 self.target_net.load_state_dict(target_net_state_dict)
+            avg_reward = np.mean(this_reward)
+            # print(avg_reward)
+            # self.reward_list.append(avg_reward)
+            self.mean_reward = avg_reward
 
             torch.save(self.policy_net, 'deepq-policy.pt')
             torch.save(self.target_net, 'deepq-target.pt')
@@ -205,47 +222,52 @@ class deepQAgent(Player):
 def main():
     trainer = Trainer()
     trainer.train()
+    # print(np.mean(trainer.reward_list))
+    print(trainer.mean_reward)
     policy_net = torch.load('deepq-policy.pt')
     policy_net = policy_net.to(device)
 
-    round_wins = []
-    round_losses = []
-    game_wins = []
-    game_losses = []
+    # round_wins = []
+    # round_losses = []
+    # game_wins = []
+    # game_losses = []
 
-    q_agent = deepQAgent(0, policy_net)
-    eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
-    print("Evaluating...")
-    one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=10000)
-    round_wins.append(one_round_wins[0])
-    round_losses.append(one_round_losses[0])
-    full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=1000)
-    game_wins.append(full_game_wins[0])
-    game_losses.append(full_game_losses[1])
+    # q_agent = deepQAgent(0, policy_net)
+    # eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
+    # print("Evaluating...")
+    # one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=5000)
+    # round_wins.append(one_round_wins[0])
+    # round_losses.append(one_round_losses[0])
+    # full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=500)
+    # game_wins.append(full_game_wins[0])
+    # game_losses.append(full_game_losses[1])
     # print("one round wins:", one_round_wins)
     # print("one round losses:", one_round_losses)
     # print("full game wins:", full_game_wins)
     # print("full game losses", full_game_losses)
 
-    for i in range(9):
+    for i in range(100):
         trainer.train('deepq-policy.pt', 'deepq-target.pt')
         policy_net = torch.load('deepq-policy.pt')
         policy_net = policy_net.to(device)
 
-        q_agent = deepQAgent(0, policy_net)
-        eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
-        print("Evaluating...")
-        one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=10000)
-        round_wins.append(one_round_wins[0])
-        round_losses.append(one_round_losses[0])
-        full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=1000)
-        game_wins.append(full_game_wins[0])
-        game_losses.append(full_game_losses[1])
+        # print(np.mean(trainer.reward_list))
+        print(trainer.mean_reward)
+        # q_agent = deepQAgent(0, policy_net)
+        # eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
+        # print("Evaluating...")
+        # one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=10000)
+        # round_wins.append(one_round_wins[0])
+        # round_losses.append(one_round_losses[0])
+        # full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=1000)
+        # game_wins.append(full_game_wins[0])
+        # game_losses.append(full_game_losses[1])
     
-    print("one round wins:", round_wins)
-    print("one round losses:", round_losses)
-    print("full game wins:", game_wins)
-    print("full game losses", game_losses)
+    # print(trainer.reward_list)
+    # print("one round wins:", round_wins)
+    # print("one round losses:", round_losses)
+    # print("full game wins:", game_wins)
+    # print("full game losses", game_losses)
     
 if __name__ == '__main__':
     main()
