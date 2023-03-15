@@ -51,17 +51,19 @@ class ReplayMemory(object):
 class DQN(nn.Module):
     def __init__(self, n_observations, n_actions) -> None:
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 256)
-        self.layer2 = nn.Linear(256, 256)
-        self.layer3 = nn.Linear(256, 256)
-        self.layer4 = nn.Linear(256, n_actions)
+        self.layer1 = nn.Linear(n_observations, 128)
+        self.layer2 = nn.Linear(128, 128)
+        self.layer3 = nn.Linear(128, 128)
+        self.layer4 = nn.Linear(128, 128)
+        self.layer5 = nn.Linear(128, n_actions)
     
     # called on one element (to determine next action) or batch
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         x = F.relu(self.layer3(x))
-        return self.layer4(x)
+        x = F.relu(self.layer4(x))
+        return self.layer5(x)
     
 class Trainer():
     def __init__(self) -> None:
@@ -146,21 +148,12 @@ class Trainer():
         reward_batch = torch.stack(batch.reward)
         mask_batch = torch.stack(batch.legal_mask)
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
-        # print(state_action_values)
-        # print("state action:", state_action_values.size())
         next_state_values = torch.zeros(self.batch_size, device=device)
-        # this is an issue
         with torch.no_grad():
-            # next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
             next_state_values[non_final_mask] = self.get_max(non_final_next_states, mask_batch[non_final_mask])
         # compute expected Q values
-        # print((next_state_values * self.gamma).size())
-        # print(reward_batch.size())
         expected_state_action_values = torch.add((next_state_values * self.gamma).unsqueeze(1),reward_batch)
-        # print("expected:", expected_state_action_values.size())
-        # print(expected_state_action_values)
         # compute Huber loss
-        # raise("stop")
         criterion = nn.SmoothL1Loss()
         loss = criterion(state_action_values, expected_state_action_values)
 
@@ -184,7 +177,6 @@ class Trainer():
             tricks = []
             hearts_broken = False
             state, players = get_starting_state()
-            # legal_actions = players[AGENT_INDEX].get_legal_moves(curr_trick, hearts_broken)
             state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
             while True: # play a whole game
                 this_reward = 0
@@ -199,7 +191,6 @@ class Trainer():
                 reward_tsr = torch.tensor([reward], dtype=torch.float32, device=device)
                 mask = torch.zeros(52).to(device)
                 legal_indices = torch.LongTensor([CARD_TO_IND[card.name] for card in legal_actions]).to(device)
-                # print(legal_indices)
                 mask = ~(mask.scatter(0, legal_indices, 1.).bool())
                 self.memory.push(state, action_tsr, next_state, reward_tsr, mask)
                 state = next_state
