@@ -256,17 +256,17 @@ def main():
         policy_net = torch.load('deepq-policy.pt')
         policy_net = policy_net.to(device)
 
-    q_agent = deepQAgent(0, policy_net)
-    eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
-    print("Evaluating...")
-    one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=5000)
-    full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=500)
-    print("one round wins:", one_round_wins)
-    print("one round losses:", one_round_losses)
-    print("full game wins:", full_game_wins)
-    print("full game losses", full_game_losses)
+    # q_agent = deepQAgent(0, policy_net)
+    # eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
+    # print("Evaluating...")
+    # one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=5000)
+    # full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=500)
+    # print("one round wins:", one_round_wins)
+    # print("one round losses:", one_round_losses)
+    # print("full game wins:", full_game_wins)
+    # print("full game losses", full_game_losses)
     trainer.plot_rewards(show_result=True)
-    plt.show()
+    # plt.show()
     plt.savefig("rewards.png")
     
 if __name__ == '__main__':
