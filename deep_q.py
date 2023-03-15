@@ -165,7 +165,7 @@ class Trainer():
         self.optimizer.step()
     
     def train(self, policy=None, target=None):
-        num_epochs = 500
+        num_epochs = 1000
 
         if policy:
             self.policy_net = torch.load(policy)
@@ -196,18 +196,17 @@ class Trainer():
                 state = next_state
                 self.optimize_model()
 
-                # soft update target net weights
-                target_net_state_dict = self.target_net.state_dict()
-                policy_net_state_dict = self.policy_net.state_dict()
-                for key in policy_net_state_dict:
-                    target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (1 - self.tau)
-                self.target_net.load_state_dict(target_net_state_dict)
-
                 if state is None:
                     # print(this_reward)
                     self.rewards.append(this_reward)
                     self.plot_rewards()
                     break
+            # soft update target net weights
+            target_net_state_dict = self.target_net.state_dict()
+            policy_net_state_dict = self.policy_net.state_dict()
+            for key in policy_net_state_dict:
+                target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (1 - self.tau)
+            self.target_net.load_state_dict(target_net_state_dict)
 
             torch.save(self.policy_net, 'deepq-policy.pt')
             torch.save(self.target_net, 'deepq-target.pt')
@@ -247,15 +246,15 @@ def main():
         policy_net = torch.load('deepq-policy.pt')
         policy_net = policy_net.to(device)
 
-    # q_agent = deepQAgent(0, policy_net)
-    # eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
-    # print("Evaluating...")
-    # one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=5000)
-    # full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=500)
-    # print("one round wins:", one_round_wins)
-    # print("one round losses:", one_round_losses)
-    # print("full game wins:", full_game_wins)
-    # print("full game losses", full_game_losses)
+    q_agent = deepQAgent(0, policy_net)
+    eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
+    print("Evaluating...")
+    one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=5000)
+    full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=500)
+    print("one round wins:", one_round_wins)
+    print("one round losses:", one_round_losses)
+    print("full game wins:", full_game_wins)
+    print("full game losses", full_game_losses)
     trainer.plot_rewards(show_result=True)
     # plt.show()
     plt.savefig("rewards.png")
