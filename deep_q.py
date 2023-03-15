@@ -259,7 +259,7 @@ def main():
     print("one round losses:", one_round_losses)
     print("full game wins:", full_game_wins)
     print("full game losses", full_game_losses)
-    trainer.plot_durations(show_result=True)
+    trainer.plot_rewards(show_result=True)
     
 if __name__ == '__main__':
     main()
