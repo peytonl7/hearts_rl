@@ -7,6 +7,7 @@ but typed all code myself and modified it for the Hearts environment
 Contains code for the Deep Q-Learning Hearts agent
 """
 
+import sys
 import math
 import numpy as np
 import matplotlib
@@ -212,6 +213,7 @@ class Trainer():
                 self.target_net.load_state_dict(target_net_state_dict)
 
                 if state is None:
+                    print(this_reward)
                     self.rewards.append(this_reward)
                     self.plot_rewards()
                     break
@@ -241,27 +243,30 @@ class deepQAgent(Player):
                         return c
         
 def main():
+    num_epochs = 10
+    if len(sys.argv) == 2:
+        num_epochs = sys.argv[1]
     trainer = Trainer()
     trainer.train()
     policy_net = torch.load('deepq-policy.pt')
     policy_net = policy_net.to(device)
 
-    for i in range(9):
+    for i in range(num_epochs - 1):
         trainer.train('deepq-policy.pt', 'deepq-target.pt')
         policy_net = torch.load('deepq-policy.pt')
         policy_net = policy_net.to(device)
 
-    q_agent = deepQAgent(0, policy_net)
-    eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
-    print("Evaluating...")
-    one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=5000)
-    full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=500)
-    print("one round wins:", one_round_wins)
-    print("one round losses:", one_round_losses)
-    print("full game wins:", full_game_wins)
-    print("full game losses", full_game_losses)
+    # q_agent = deepQAgent(0, policy_net)
+    # eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
+    # print("Evaluating...")
+    # one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=5000)
+    # full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=500)
+    # print("one round wins:", one_round_wins)
+    # print("one round losses:", one_round_losses)
+    # print("full game wins:", full_game_wins)
+    # print("full game losses", full_game_losses)
     trainer.plot_rewards(show_result=True)
-    plt.show()
+    # plt.show()
     plt.savefig("rewards.png")
     
 if __name__ == '__main__':
