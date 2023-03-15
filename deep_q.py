@@ -7,6 +7,7 @@ but typed all code myself and modified it for the Hearts environment
 Contains code for the Deep Q-Learning Hearts agent
 """
 
+import sys
 import math
 import numpy as np
 import matplotlib
@@ -212,6 +213,7 @@ class Trainer():
                 self.target_net.load_state_dict(target_net_state_dict)
 
                 if state is None:
+                    print(this_reward)
                     self.rewards.append(this_reward)
                     self.plot_rewards()
                     break
@@ -241,12 +243,15 @@ class deepQAgent(Player):
                         return c
         
 def main():
+    num_epochs = 10
+    if len(sys.argv) == 2:
+        num_epochs = sys.argv[1]
     trainer = Trainer()
     trainer.train()
     policy_net = torch.load('deepq-policy.pt')
     policy_net = policy_net.to(device)
 
-    for i in range(9):
+    for i in range(num_epochs - 1):
         trainer.train('deepq-policy.pt', 'deepq-target.pt')
         policy_net = torch.load('deepq-policy.pt')
         policy_net = policy_net.to(device)

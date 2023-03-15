@@ -75,13 +75,13 @@ def simulate_transition(curr_trick: Trick, tricks: 'list[Trick]', players: 'list
     if len(players[AGENT_INDEX].hand) == 0:
         terminated = True
         next_trick = None
-        scores = [player.compute_score() for player in players]
-        if scores[0] == min(scores):
-            reward = 100
-        elif scores[0] == max(scores):
-            reward = -100
-        else:
-            reward = 0
+        # scores = [player.compute_score() for player in players]
+        # if scores[0] == min(scores):
+        #     reward = 100
+        # elif scores[0] == max(scores):
+        #     reward = -100
+        # else:
+        #     reward = 0
     else:
         terminated = False
         # start the next trick
