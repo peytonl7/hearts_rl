@@ -70,7 +70,7 @@ class Trainer():
         self.eps_start = 0.9
         self.eps_end = 0.05
         self.eps_decay = 1000
-        self.tau = 0.005 # update rate of target network
+        self.tau = 0.0001 # update rate of target network
         self.lr = 0.0001
         self.rewards = []
         self.mean_reward = 0
@@ -172,7 +172,7 @@ class Trainer():
         self.optimizer.step()
     
     def train(self, policy=None, target=None):
-        num_epochs = 50
+        num_epochs = 500
 
         if policy:
             self.policy_net = torch.load(policy)
@@ -213,7 +213,7 @@ class Trainer():
                 self.target_net.load_state_dict(target_net_state_dict)
 
                 if state is None:
-                    print(this_reward)
+                    # print(this_reward)
                     self.rewards.append(this_reward)
                     self.plot_rewards()
                     break
@@ -251,7 +251,7 @@ def main():
     policy_net = torch.load('deepq-policy.pt')
     policy_net = policy_net.to(device)
 
-    for i in range(num_epochs - 1):
+    for i in range(int(num_epochs) - 1):
         trainer.train('deepq-policy.pt', 'deepq-target.pt')
         policy_net = torch.load('deepq-policy.pt')
         policy_net = policy_net.to(device)

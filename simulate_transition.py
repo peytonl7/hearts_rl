@@ -6,7 +6,7 @@ Simulates a transition. Given an input state and an action, return a next state 
 """
 from random import shuffle
 from classes import Player, Trick
-from baseline_agents import BaselineAgent
+from baseline_agents import BaselineAgent, GreedyBaseline
 from play import generate_deck
 from utils import state_to_vec
 
@@ -14,7 +14,7 @@ NUM_PLAYERS = 4
 AGENT_INDEX = 0
 
 def get_starting_state():
-    players = [Player(0), BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)] # we might test against greedy baseline later?
+    players = [Player(0), GreedyBaseline(1), GreedyBaseline(2), GreedyBaseline(3)] # we might test against greedy baseline later?
     deck = generate_deck()  
     shuffle(deck)
     curr_player = 0
