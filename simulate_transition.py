@@ -60,9 +60,15 @@ def simulate_transition(curr_trick: Trick, tricks: 'list[Trick]', players: 'list
     tricks.append(curr_trick)
 
     curr_score = players[AGENT_INDEX].compute_score()
-    reward = min(players[AGENT_INDEX].prev_score - curr_score, 0)
+    reward = 0
+    if winner == AGENT_INDEX:
+        reward = players[AGENT_INDEX].prev_score - curr_score
+    else:
+        reward = -(players[winner].prev_score - players[winner].compute_score())
     # print("reward:", reward)
-    players[AGENT_INDEX].prev_score = curr_score
+    # players[AGENT_INDEX].prev_score = curr_score
+    for i in range(4):
+        players[i].prev_score = players[i].compute_score()
 
     # print([card.name for card in players[0].hand])
 
