@@ -54,16 +54,16 @@ class DQN(nn.Module):
         self.layer1 = nn.Linear(n_observations, 128)
         self.layer2 = nn.Linear(128, 128)
         self.layer3 = nn.Linear(128, 128)
-        self.layer4 = nn.Linear(128, 128)
-        self.layer5 = nn.Linear(128, n_actions)
+        # self.layer4 = nn.Linear(128, 128)
+        self.layer4 = nn.Linear(128, n_actions)
     
     # called on one element (to determine next action) or batch
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         x = F.relu(self.layer3(x))
-        x = F.relu(self.layer4(x))
-        return self.layer5(x)
+        # x = F.relu(self.layer4(x))
+        return self.layer4(x)
     
 class Trainer():
     def __init__(self) -> None:
@@ -73,7 +73,7 @@ class Trainer():
         self.eps_end = 0.05
         self.eps_decay = 1000
         self.tau = 0.0001 # update rate of target network
-        self.lr = 0.0001
+        self.lr = 0.00001
         self.rewards = []
         self.mean_reward = 0
 
@@ -165,7 +165,7 @@ class Trainer():
         self.optimizer.step()
     
     def train(self, policy=None, target=None):
-        num_epochs = 1000
+        num_epochs = 10000
 
         if policy:
             self.policy_net = torch.load(policy)
@@ -249,8 +249,8 @@ def main():
     q_agent = deepQAgent(0, policy_net)
     eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
     print("Evaluating...")
-    one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=5000)
-    full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=500)
+    one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=10000)
+    full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=1000)
     print("one round wins:", one_round_wins)
     print("one round losses:", one_round_losses)
     print("full game wins:", full_game_wins)
