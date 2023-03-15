@@ -104,7 +104,8 @@ class Trainer():
             means = torch.cat((torch.zeros(99), means))
             plt.plot(means.numpy())
 
-    plt.pause(0.001)
+        plt.pause(0.001)
+
     def get_action(self, state, legal_actions):
         eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * \
             math.exp(-1 * self.steps_done / self.eps_decay)
@@ -245,7 +246,7 @@ def main():
     policy_net = torch.load('deepq-policy.pt')
     policy_net = policy_net.to(device)
 
-    for i in range(100):
+    for i in range(9):
         trainer.train('deepq-policy.pt', 'deepq-target.pt')
         policy_net = torch.load('deepq-policy.pt')
         policy_net = policy_net.to(device)
@@ -260,6 +261,8 @@ def main():
     print("full game wins:", full_game_wins)
     print("full game losses", full_game_losses)
     trainer.plot_rewards(show_result=True)
+    plt.show()
+    plt.savefig("rewards.png")
     
 if __name__ == '__main__':
     main()
