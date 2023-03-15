@@ -215,11 +215,6 @@ class Trainer():
                     self.plot_rewards()
                     break
 
-            avg_reward = np.mean(this_reward)
-            # print(avg_reward)
-            self.reward_list.append(avg_reward)
-            # self.mean_reward = avg_reward
-
             torch.save(self.policy_net, 'deepq-policy.pt')
             torch.save(self.target_net, 'deepq-target.pt')
 
