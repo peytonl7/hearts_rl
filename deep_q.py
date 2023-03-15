@@ -71,7 +71,7 @@ class Trainer():
         self.eps_decay = 1000
         self.tau = 0.005 # update rate of target network
         self.lr = 0.0001
-        self.rewards
+        self.rewards = []
         self.mean_reward = 0
 
         n_actions = 52 # one for each card
