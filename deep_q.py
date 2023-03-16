@@ -101,6 +101,7 @@ class Trainer():
 
     def plot_stats(self, type):
         plt.figure(1)
+        x_t = torch.tensor([i * 100 for i in range(len(self.win_percent_b))], dtype=torch.int)
         if type == 'baseline':
             wins_t = torch.tensor(self.win_percent_b, dtype=torch.float)
             losses_t = torch.tensor(self.lose_percent_b, dtype=torch.float)
@@ -115,10 +116,10 @@ class Trainer():
         plt.title('Percentage of wins/losses over time')
         plt.xlabel('Episode')
         plt.ylabel('Percentage')
-        plt.plot(wins_t.numpy(), label = "wins")
-        plt.plot(losses_t.numpy(), label = "losses")
-        plt.plot(orw_t.numpy(), label = "one round wins")
-        plt.plot(orl_t.numpy(), label = "one round losses")
+        plt.plot(x_t.numpy(), wins_t.numpy(), label = "wins")
+        plt.plot(x_t.numpy(), losses_t.numpy(), label = "losses")
+        plt.plot(x_t.numpy(), orw_t.numpy(), label = "one round wins")
+        plt.plot(x_t.numpy(), orl_t.numpy(), label = "one round losses")
         plt.legend()
 
         plt.savefig("stats" + type + ".png")
