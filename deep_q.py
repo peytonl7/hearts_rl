@@ -1,6 +1,6 @@
 """
 File: deep_q.py
-Last update: 03/12 by Michelle
+Last update: 03/16 by Michelle
 Attributions: I followed the PyTorch deep-Q tutorial (https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html),
 but typed all code myself and modified it for the Hearts environment
 
@@ -74,8 +74,17 @@ class Trainer():
         self.eps_decay = 1000
         self.tau = 0.0001 # update rate of target network
         self.lr = 0.00001
-        self.rewards = []
-        self.mean_reward = 0
+
+        # needed for plotting
+        self.win_percent_b = []
+        self.lose_percent_b = []
+        self.orw_p_b = []
+        self.orl_p_b = []
+
+        self.win_percent_g = []
+        self.lose_percent_g = []
+        self.orw_p_g = []
+        self.orl_p_g = []
 
         n_actions = 52 # one for each card
         # 52 to encode cards in play, 52 to encode cards in hand, 52 to encode what cards have been previously played
@@ -90,24 +99,29 @@ class Trainer():
         self.memory = ReplayMemory(1300)
         self.steps_done = 0
 
-    def plot_rewards(self, show_result=False):
+    def plot_stats(self, type):
         plt.figure(1)
-        rewards_t = torch.tensor(self.rewards, dtype=torch.float)
-        if show_result:
-            plt.title('Result')
-        else:
-            plt.clf()
-            plt.title('Training...')
-        plt.xlabel('Episode')
-        plt.ylabel('Reward')
-        plt.plot(rewards_t.numpy())
-        # Take 100 episode averages and plot them too
-        if len(rewards_t) >= 100:
-            means = rewards_t.unfold(0, 100, 1).mean(1).view(-1)
-            means = torch.cat((torch.zeros(99), means))
-            plt.plot(means.numpy())
+        if type == 'baseline':
+            wins_t = torch.tensor(self.win_percent_b, dtype=torch.float)
+            losses_t = torch.tensor(self.lose_percent_b, dtype=torch.float)
+            orw_t = torch.tensor(self.orw_p_b, dtype=torch.float)
+            orl_t = torch.tensor(self.orl_p_b, dtype=torch.float)
+        elif type == 'greedy':
+            wins_t = torch.tensor(self.win_percent_g, dtype=torch.float)
+            losses_t = torch.tensor(self.lose_percent_g, dtype=torch.float)
+            orw_t = torch.tensor(self.orw_p_g, dtype=torch.float)
+            orl_t = torch.tensor(self.orl_p_g, dtype=torch.float)
 
-        plt.pause(0.001)
+        plt.title('Percentage of wins/losses over time')
+        plt.xlabel('Episode')
+        plt.ylabel('Percentage')
+        plt.plot(wins_t.numpy(), label = "wins")
+        plt.plot(losses_t.numpy(), label = "losses")
+        plt.plot(orw_t.numpy(), label = "one round wins")
+        plt.plot(orl_t.numpy(), label = "one round losses")
+        plt.legend()
+
+        plt.savefig("stats" + type + ".png")
 
     def get_action(self, state, legal_actions):
         eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * \
@@ -164,15 +178,37 @@ class Trainer():
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
     
-    def train(self, policy=None, target=None):
-        num_epochs = 10000
+    def evaluate_performance(self):
+        q_agent = deepQAgent(0, self.policy_net)
+        eval_players_b = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
+        print("Evaluating against baseline...")
+        one_round_wins, one_round_losses = evaluate(eval_players_b, end_threshold=0, num_evals=1300)
+        full_game_wins, full_game_losses = evaluate(eval_players_b, end_threshold=100, num_evals=100)
 
+        self.win_percent_b.append(full_game_wins[0])
+        self.lose_percent_b.append(full_game_losses[0])
+        self.orw_p_b.append(one_round_wins[0])
+        self.orl_p_b.append(one_round_losses[0])
+
+        eval_players_g = [q_agent, GreedyBaseline(1), GreedyBaseline(2), GreedyBaseline(3)]
+        print("Evaluating against greedy...")
+        one_round_wins, one_round_losses = evaluate(eval_players_g, end_threshold=0, num_evals=1300)
+        full_game_wins, full_game_losses = evaluate(eval_players_g, end_threshold=100, num_evals=100)
+
+        self.win_percent_g.append(full_game_wins[0])
+        self.lose_percent_g.append(full_game_losses[0])
+        self.orw_p_g.append(one_round_wins[0])
+        self.orl_p_g.append(one_round_losses[0])
+
+    def train(self, num_epochs, policy=None, target=None):
         if policy:
             self.policy_net = torch.load(policy)
         if target:
             self.target_net = torch.load(target)
 
         for i in tqdm(range(num_epochs)):
+            if i % 100 == 0:
+                self.evaluate_performance()
             curr_trick = Trick(NUM_PLAYERS)
             tricks = []
             hearts_broken = False
@@ -197,10 +233,8 @@ class Trainer():
                 self.optimize_model()
 
                 if state is None:
-                    # print(this_reward)
-                    self.rewards.append(this_reward)
-                    self.plot_rewards()
                     break
+
             # soft update target net weights
             target_net_state_dict = self.target_net.state_dict()
             policy_net_state_dict = self.policy_net.state_dict()
@@ -208,8 +242,8 @@ class Trainer():
                 target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (1 - self.tau)
             self.target_net.load_state_dict(target_net_state_dict)
 
-            torch.save(self.policy_net, 'deepq-policy.pt')
-            torch.save(self.target_net, 'deepq-target.pt')
+        torch.save(self.policy_net, 'deepq-policy.pt')
+        # torch.save(self.target_net, 'deepq-target.pt')
 
 class deepQAgent(Player):
     def __init__(self, pos: int, policy_net: DQN):
@@ -233,31 +267,35 @@ class deepQAgent(Player):
                         return c
         
 def main():
-    num_epochs = 10
+    num_epochs = 200
     if len(sys.argv) == 2:
         num_epochs = sys.argv[1]
     trainer = Trainer()
-    trainer.train()
+    trainer.train(num_epochs)
     policy_net = torch.load('deepq-policy.pt')
     policy_net = policy_net.to(device)
 
-    for i in range(int(num_epochs) - 1):
-        trainer.train('deepq-policy.pt', 'deepq-target.pt')
-        policy_net = torch.load('deepq-policy.pt')
-        policy_net = policy_net.to(device)
-
     q_agent = deepQAgent(0, policy_net)
     eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
-    print("Evaluating...")
+    print("Evaluating against baseline...")
     one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=10000)
     full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=1000)
     print("one round wins:", one_round_wins)
     print("one round losses:", one_round_losses)
     print("full game wins:", full_game_wins)
     print("full game losses", full_game_losses)
-    trainer.plot_rewards(show_result=True)
-    # plt.show()
-    plt.savefig("rewards.png")
+
+    eval_players = [q_agent, GreedyBaseline(1), GreedyBaseline(2), GreedyBaseline(3)]
+    print("Evaluating against greedy...")
+    one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=10000)
+    full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=1000)
+    print("one round wins:", one_round_wins)
+    print("one round losses:", one_round_losses)
+    print("full game wins:", full_game_wins)
+    print("full game losses", full_game_losses)
+
+    trainer.plot_stats('baseline')
+    trainer.plot_stats('greedy')
     
 if __name__ == '__main__':
     main()
