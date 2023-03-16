@@ -242,6 +242,7 @@ class Trainer():
                 target_net_state_dict[key] = policy_net_state_dict[key] * self.tau + target_net_state_dict[key] * (1 - self.tau)
             self.target_net.load_state_dict(target_net_state_dict)
 
+        self.evaluate_performance()
         torch.save(self.policy_net, 'deepq-policy.pt')
         # torch.save(self.target_net, 'deepq-target.pt')
 
@@ -269,7 +270,7 @@ class deepQAgent(Player):
 def main():
     num_epochs = 200
     if len(sys.argv) == 2:
-        num_epochs = sys.argv[1]
+        num_epochs = int(sys.argv[1])
     trainer = Trainer()
     trainer.train(num_epochs)
     policy_net = torch.load('deepq-policy.pt')
