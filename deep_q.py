@@ -51,23 +51,23 @@ class ReplayMemory(object):
 class DQN(nn.Module):
     def __init__(self, n_observations, n_actions) -> None:
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
-        self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, 128)
+        self.layer1 = nn.Linear(n_observations, 256)
+        self.layer2 = nn.Linear(256, 256)
+        # self.layer3 = nn.Linear(128, 128)
         # self.layer4 = nn.Linear(128, 128)
-        self.layer4 = nn.Linear(128, n_actions)
+        self.layer3 = nn.Linear(256, n_actions)
     
     # called on one element (to determine next action) or batch
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        x = F.relu(self.layer3(x))
+        # x = F.relu(self.layer3(x))
         # x = F.relu(self.layer4(x))
-        return self.layer4(x)
+        return self.layer3(x)
     
 class Trainer():
     def __init__(self) -> None:
-        self.batch_size = 512
+        self.batch_size = 800
         self.gamma = 1
         self.eps_start = 0.9
         self.eps_end = 0.05
@@ -123,6 +123,7 @@ class Trainer():
         plt.legend()
 
         plt.savefig("stats" + type + ".png")
+        plt.clf()
 
     def get_action(self, state, legal_actions):
         eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * \
