@@ -54,16 +54,16 @@ class DQN(nn.Module):
         self.layer1 = nn.Linear(n_observations, 128)
         self.layer2 = nn.Linear(128, 128)
         self.layer3 = nn.Linear(128, 128)
-        # self.layer4 = nn.Linear(128, 128)
-        self.layer4 = nn.Linear(128, n_actions)
+        self.layer4 = nn.Linear(128, 128)
+        self.layer5 = nn.Linear(128, n_actions)
     
     # called on one element (to determine next action) or batch
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         x = F.relu(self.layer3(x))
-        # x = F.relu(self.layer4(x))
-        return self.layer4(x)
+        x = F.relu(self.layer4(x))
+        return self.layer5(x)
     
 class Trainer():
     def __init__(self) -> None:
@@ -123,6 +123,7 @@ class Trainer():
         plt.legend()
 
         plt.savefig("stats" + type + ".png")
+        plt.clf()
 
     def get_action(self, state, legal_actions):
         eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * \
