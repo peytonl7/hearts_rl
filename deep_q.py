@@ -54,13 +54,15 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(n_observations, 256)
         self.layer2 = nn.Linear(256, 256)
-        self.layer3 = nn.Linear(256, n_actions)
+        self.layer3 = nn.Linear(256, 256)
+        self.layer4 = nn.Linear(256, n_actions)
     
     # called on one element (to determine next action) or batch
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        return self.layer3(x)
+        x = F.relu(self.layer3(x))
+        return self.layer4(x)
     
 class Trainer():
     def __init__(self) -> None:
@@ -119,7 +121,7 @@ class Trainer():
         plt.plot(x_t.numpy(), orl_t.numpy(), label = "one round losses")
         plt.legend()
 
-        plt.savefig("stats" + type + ".png")
+        plt.savefig("stats2x256" + type + ".png")
         plt.clf()
 
     def get_action(self, state, legal_actions):
