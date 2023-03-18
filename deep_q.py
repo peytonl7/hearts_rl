@@ -1,10 +1,11 @@
 """
 File: deep_q.py
-Last update: 03/16 by Michelle
+Last update: 03/17/23 by Michelle
 Attributions: I followed the PyTorch deep-Q tutorial (https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html),
 but typed all code myself and modified it for the Hearts environment
 
 Contains code for the Deep Q-Learning Hearts agent
+Author: Michelle Fu
 """
 
 import sys
@@ -24,9 +25,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 from classes import Card, Trick, Player
 from utils import action_from_tsr, state_to_vec, CARD_TO_IND
-from simulate_transition import get_starting_state, simulate_transition
+from simulate_transition import get_starting_state, simulate_transition # comment this out to play against DQN
 from baseline_agents import BaselineAgent, GreedyBaseline
-from evaluate import evaluate
+from evaluate import evaluate # comment this out to play against DQN
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'legal_mask'))
 NUM_PLAYERS = 4
@@ -53,16 +54,12 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(n_observations, 256)
         self.layer2 = nn.Linear(256, 256)
-        # self.layer3 = nn.Linear(128, 128)
-        # self.layer4 = nn.Linear(128, 128)
         self.layer3 = nn.Linear(256, n_actions)
     
     # called on one element (to determine next action) or batch
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        # x = F.relu(self.layer3(x))
-        # x = F.relu(self.layer4(x))
         return self.layer3(x)
     
 class Trainer():
@@ -88,7 +85,7 @@ class Trainer():
 
         n_actions = 52 # one for each card
         # 52 to encode cards in play, 52 to encode cards in hand, 52 to encode what cards have been previously played
-        # 4 to encode player order, 4 to encode suit of current hand, 4 to encode which players have won hearts
+        # 4 to encode player order, 4 to encode suit of current hand, 4 to encode which players have won points
         n_observations = 168
 
         self.policy_net = DQN(n_observations, n_actions).to(device)
@@ -202,12 +199,7 @@ class Trainer():
         self.orw_p_g.append(one_round_wins[0])
         self.orl_p_g.append(one_round_losses[0])
 
-    def train(self, num_epochs, policy=None, target=None):
-        if policy:
-            self.policy_net = torch.load(policy)
-        if target:
-            self.target_net = torch.load(target)
-
+    def train(self, num_epochs):
         for i in tqdm(range(num_epochs)):
             if i % 100 == 0:
                 self.evaluate_performance()
@@ -246,7 +238,6 @@ class Trainer():
 
         self.evaluate_performance()
         torch.save(self.policy_net, 'deepq-policy.pt')
-        # torch.save(self.target_net, 'deepq-target.pt')
 
 class deepQAgent(Player):
     def __init__(self, pos: int, policy_net: DQN):

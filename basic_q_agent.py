@@ -1,6 +1,6 @@
 """
 File: basic_q_agent.py 
-Last modified: 3/5/22 by Peyton
+Last modified: 3/5/23 by Peyton
 Basic Q-learning with a reduced state space.
 
 Author: Michelle Fu, Peyton Lee

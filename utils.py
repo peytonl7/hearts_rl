@@ -1,8 +1,9 @@
 """
 File: utils.py
-Last update: 03/11 by Michelle
+Last update: 03/17/23 by Michelle
 
 Utility functions.
+Author: Michelle Fu
 """
 
 CARD_TO_IND = {
@@ -102,5 +103,4 @@ def state_to_vec(players, trick):
         in_play[CARD_TO_IND[card.name]] = 1   
 
     state_vec = in_play + in_hand + previous + our_pos + curr_suit + has_hearts
-    # print(state_vec)
     return state_vec
