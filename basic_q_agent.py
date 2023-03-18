@@ -9,16 +9,17 @@ import numpy as np
 import pandas
 from math import inf
 from tqdm import tqdm
+from matplotlib import pyplot as plt
 
 from classes import Card, Trick, Player, StateRecord
-from baseline_agents import BaselineAgent
+from baseline_agents import BaselineAgent, GreedyBaseline
 from play import play
 from evaluate import evaluate
 
-NUM_TRAINING_PASSES = 2
-NUM_TRAINING_GAMES = 100000
+NUM_TRAINING_PASSES = 1
+NUM_TRAINING_GAMES = 10000
 
-DEBUGGING = False
+DEBUGGING = True
 
 # Adapted from project 2.
 class QLearner():
@@ -31,7 +32,7 @@ class QLearner():
         self.trace = np.zeros((len(state_space), len(action_space)))
         
     # Updates Q based on observation
-    def update(self, idx, s, a, r, sp):
+    def update(self, s, a, r, sp):
         self.trace[s, a] += 1
         self.Q[s, a] += self.alpha * (r + self.discount * np.max(self.Q[sp]) - self.Q[s, a])
                     
@@ -71,6 +72,17 @@ class BasicQAgent(Player):
         state_space = [i for i in range(4 * 14 ** 4)]
         action_space = [i for i in range(52)]
         self.q_learner = QLearner(state_space, action_space, discount=1, alpha=0.01)
+        
+        # needed for plotting
+        self.win_percent_b = []
+        self.lose_percent_b = []
+        self.orw_p_b = []
+        self.orl_p_b = []
+
+        self.win_percent_g = []
+        self.lose_percent_g = []
+        self.orw_p_g = []
+        self.orl_p_g = []
     
     # Employs batch Q-learning with actions constrained by rules
     def take_turn(self, trick: Trick, tricks: 'list[Trick]', players: 'list[Player]', hearts_broken: bool) -> Card:
@@ -93,15 +105,64 @@ class BasicQAgent(Player):
         for i in range(NUM_TRAINING_PASSES):
             print(f"Learning epoch {i}")
             for idx, data in tqdm(df.iterrows()):
-                self.q_learner.update(idx, data["s"], data["a"], data["r"], data["sp"])
+                self.q_learner.update(data["s"], data["a"], data["r"], data["sp"])
+                # if idx % 5200 == 0:
+                #     self.evaluate_performance()
         self.q_learner.interpolate_Q()
+        
+    def plot_stats(self, type):
+        plt.figure(1)
+        x_t = np.array([i * 100 for i in range(len(self.win_percent_b))])
+        if type == 'baseline':
+            wins_t = np.array(self.win_percent_b)
+            losses_t = np.array(self.lose_percent_b)
+            orw_t = np.array(self.orw_p_b)
+            orl_t = np.array(self.orl_p_b)
+        elif type == 'greedy':
+            wins_t = np.array(self.win_percent_g)
+            losses_t = np.array(self.lose_percent_g)
+            orw_t = np.array(self.orw_p_g)
+            orl_t = np.array(self.orl_p_g)
+
+        plt.title('Percentage of wins/losses over time')
+        plt.xlabel('Episode')
+        plt.ylabel('Percentage')
+        plt.plot(x_t, wins_t, label = "wins")
+        plt.plot(x_t, losses_t, label = "losses")
+        plt.plot(x_t, orw_t, label = "one round wins")
+        plt.plot(x_t, orl_t, label = "one round losses")
+        plt.legend()
+        
+        plt.savefig("stats" + type + ".png")
+        plt.clf()
+    
+    def evaluate_performance(self):
+        eval_players_b = [self, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
+        print("Evaluating against baseline...")
+        one_round_wins, one_round_losses = evaluate(eval_players_b, end_threshold=0, num_evals=5000)
+        full_game_wins, full_game_losses = evaluate(eval_players_b, end_threshold=100, num_evals=500)
+
+        self.win_percent_b.append(full_game_wins[0])
+        self.lose_percent_b.append(full_game_losses[0])
+        self.orw_p_b.append(one_round_wins[0])
+        self.orl_p_b.append(one_round_losses[0])
+
+        eval_players_g = [self, GreedyBaseline(1), GreedyBaseline(2), GreedyBaseline(3)]
+        print("Evaluating against greedy...")
+        one_round_wins, one_round_losses = evaluate(eval_players_g, end_threshold=0, num_evals=5000)
+        full_game_wins, full_game_losses = evaluate(eval_players_g, end_threshold=100, num_evals=500)
+
+        self.win_percent_g.append(full_game_wins[0])
+        self.lose_percent_g.append(full_game_losses[0])
+        self.orw_p_g.append(one_round_wins[0])
+        self.orl_p_g.append(one_round_losses[0])
         
         
 # Simulates games and trains the BasicQAgent based on the simulated transition/reward data.
 # Saves the training data to a csv. Evaluates the BasicQAgent against random baseline agents.
 def main():
     state_record = StateRecord()
-    train_players = [BaselineAgent(0), BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
+    train_players = [BaselineAgent(0), GreedyBaseline(1), BaselineAgent(2), GreedyBaseline(3)]
     print("Generating training data...")
     for i in tqdm(range(NUM_TRAINING_GAMES)):
         play(train_players, 0, False, state_record)
@@ -113,13 +174,18 @@ def main():
     q_agent.batch_q_learn(df)
     
     eval_players = [q_agent, BaselineAgent(1), BaselineAgent(2), BaselineAgent(3)]
-    print("Evaluating...")
-    one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=100000)
-    print("One round win percentages: ", one_round_wins)
-    print("One round loss percentages: ", one_round_losses)
-    full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=10000)
-    print("Full game win percentages: ", full_game_wins)
-    print("Full game loss percentages: ", full_game_losses)
+    # print("Evaluating...")
+    # one_round_wins, one_round_losses = evaluate(eval_players, end_threshold=0, num_evals=100000)
+    # print("One round win percentages: ", one_round_wins)
+    # print("One round loss percentages: ", one_round_losses)
+    # full_game_wins, full_game_losses = evaluate(eval_players, end_threshold=100, num_evals=10000)
+    # print("Full game win percentages: ", full_game_wins)
+    # print("Full game loss percentages: ", full_game_losses)
+    
+    evaluate(eval_players, end_threshold=0, num_evals=20, console_game=True)
+    
+    # q_agent.plot_stats('baseline')
+    # q_agent.plot_stats('greedy')
     
 if __name__ == '__main__':
     main()

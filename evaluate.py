@@ -11,10 +11,10 @@ from tqdm import tqdm
 
 # Evaluates the player configuration with the given end-game threshold, testing 
 # for num_eval iterations.
-def evaluate(players: 'list[Player]', end_threshold: int, num_evals: int):
+def evaluate(players: 'list[Player]', end_threshold: int, num_evals: int, console_game: bool = False):
     wins, losses = [0, 0, 0, 0], [0, 0, 0, 0]
     for i in tqdm(range(num_evals)):
-        final_scores = play(players, end_threshold, False, None)
+        final_scores = play(players, end_threshold, console_game, None)
         for player, score in final_scores.items():
             if score == max(final_scores.values()):
                 losses[player] += 1
