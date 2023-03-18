@@ -174,6 +174,7 @@ class StateRecord():
         
     def write_to_csv(self, filename: str):
         with open(filename, 'w') as f:
+            f.truncate()
             w = csv.writer(f)
             w.writerows(self.record)
     
