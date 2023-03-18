@@ -1,6 +1,6 @@
 """
 File: classes.py
-Last update: 2/28 by Peyton
+Last update: 3/17/23 by Michelle
 
 Plays the game.
 
@@ -14,11 +14,16 @@ Follows these Black Lady rules:
     - Collecting all tricks is "shooting the sun," i.e. -50 for you and
       50 for everyone else.
     - A full game ends when one person reaches END_THRESHOLD.
+
+Author: Peyton Lee
 """
 
 import sys
 from classes import Card, Trick, ConsolePlayer, Player, StateRecord
 from baseline_agents import BaselineAgent, GreedyBaseline
+# uncomment this to play against DQN
+# from deep_q import deepQAgent, DQN 
+import torch
 
 from random import shuffle
 
@@ -145,6 +150,10 @@ if __name__ == "__main__":
         print("Invalid player type. Should be one of: ", ['baseline', 'greedy'])
     else:
         players = []
+        # for human analysis of deep q agent performance
+        # policy_net = torch.load('deepq-policy.pt')
+        # q_agent = deepQAgent(0, policy_net)
+        # players.append(q_agent)
         players.append(ConsolePlayer(0))
         if cpu_type == 'baseline':
             players.append(BaselineAgent(1))

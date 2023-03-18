@@ -1,8 +1,9 @@
 """
 File: classes.py
-Last update: 3/11 by Michelle
+Last update: 3/11/23 by Michelle
 
 Contains relevant classes for modeling the game.
+Author: Michelle Fu, Peyton Lee
 """
 
 import csv
